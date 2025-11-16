@@ -1,0 +1,32 @@
+{
+  "predictors": [
+    "peso_mp",
+    "peso_peca",
+    "cavaco",
+    "comprimento"
+  ],
+  "target": "preco",
+  "model_type": "RandomForest_por_faixas",
+  "faixa_0": {
+    "threshold": "<=5000",
+    "n_observations": 491,
+    "r_squared": 0.9416808816218006,
+    "mae": 153.45717331326932,
+    "rmse": 232.83887799637318,
+    "mape": 21.465707638969512
+  },
+  "faixa_1": {
+    "threshold": ">5000",
+    "n_observations": 32,
+    "r_squared": 0.9688940879482869,
+    "mae": 3319.971986543993,
+    "rmse": 5657.033009324743,
+    "mape": 26.07772761273559
+  },
+  "r_squared": 0.9416808816218006,
+  "r_squared_adj": 0.9416808816218006,
+  "aic": 0,
+  "bic": 0,
+  "n_observations": 523,
+  "formula": "preco ~ peso_mp + peso_peca + cavaco + comprimento"
+}
