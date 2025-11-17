@@ -61,20 +61,6 @@ model_data, config = load_model()
 
 st.markdown('<h1 class="main-header">Sistema de Predição de Preço - Peças Industriais</h1>', unsafe_allow_html=True)
 
-st.sidebar.title("Informações do Modelo")
-st.sidebar.markdown("---")
-
-st.sidebar.metric("R²", f"{config['r_squared']:.4f}")
-st.sidebar.metric("R² Ajustado", f"{config['r_squared_adj']:.4f}")
-st.sidebar.metric("AIC", f"{config['aic']:.2f}")
-st.sidebar.metric("Observações", config['n_observations'])
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### Variáveis")
-st.sidebar.markdown(f"**Target:** {config['target']}")
-st.sidebar.markdown("**Preditores:**")
-for pred in config['predictors']:
-    st.sidebar.markdown(f"- {pred}")
 
 tab1, tab2, tab3 = st.tabs([
     "Predição Individual",
@@ -103,12 +89,12 @@ with tab1:
                 if var == 'cavaco':
                     default_val = 20.0
                     min_val = 0.0
-                    max_val = 100.0
+                    max_val = 2000.0
                     step = 0.1
                 elif var == 'peso_peca':
                     default_val = 2.0
                     min_val = 0.0
-                    max_val = 50.0
+                    max_val = 2000.0
                     step = 0.01
                 elif var == 'comprimento':
                     default_val = 300.0
@@ -118,7 +104,7 @@ with tab1:
                 else:
                     default_val = 1.0
                     min_val = 0.0
-                    max_val = 1000.0
+                    max_val = 2000.0
                     step = 0.1
 
                 input_data[var] = st.number_input(
@@ -133,10 +119,12 @@ with tab1:
         if st.button("Fazer Predição", type="primary", use_container_width=True):
             try:
                 new_data = pd.DataFrame([input_data])
-                # Transforma e prediz usando modelo da faixa 0
                 X = new_data[model_data['features']].values
                 X_imp = model_data['imputer_faixa_0'].transform(X)
                 prediction = model_data['model_faixa_0'].predict(X_imp)
+
+                if prediction[0] > 5000:
+                    st.warning(f"Preço predito: R$ {prediction[0]:.2f}. Este modelo é otimizado para peças com preço até R$ 5.000,00. A predição não vai ser precisa.")
 
                 st.session_state['last_prediction'] = prediction[0]
                 st.session_state['last_input'] = input_data
@@ -182,7 +170,11 @@ with tab1:
                     X = example_df[model_data['features']].values
                     X_imp = model_data['imputer_faixa_0'].transform(X)
                     pred = model_data['model_faixa_0'].predict(X_imp)
-                    st.success(f"Preço estimado: R$ {pred[0]:.2f}")
+
+                    if pred[0] > 5000:
+                        st.warning(f"Preço estimado: R$ {pred[0]:.2f}. Modelo otimizado para peças até R$ 5.000,00. A predição não vai ser precisa.")
+                    else:
+                        st.success(f"Preço estimado: R$ {pred[0]:.2f}")
                 except Exception as e:
                     st.error(f"Erro: {str(e)}")
 
@@ -224,6 +216,10 @@ with tab2:
                             X_imp = model_data['imputer_faixa_0'].transform(X)
                             predictions = model_data['model_faixa_0'].predict(X_imp)
                             batch_df['preco_predito'] = predictions
+
+                            pecas_acima = (batch_df['preco_predito'] > 5000).sum()
+                            if pecas_acima > 0:
+                                st.warning(f"{pecas_acima} peça(s) com preço predito acima de R$ 5.000,00. Este modelo é otimizado para peças até R$ 5.000,00. As predições não vão ser precisas.")
 
                             st.success(f"{len(batch_df)} predições realizadas com sucesso!")
 
@@ -285,50 +281,9 @@ with tab3:
     st.header("Sobre o Modelo")
 
     st.markdown("""
-    Este sistema utiliza um modelo de **Regressão Linear Múltipla (OLS - Ordinary Least Squares)**
-    pré-treinado para predizer o preço de peças industriais.
+    Este sistema utiliza um modelo de **Random Forest** pré-treinado para predizer o preço de peças industriais.
+
     """)
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Métricas de Desempenho")
-
-        metrics_df = pd.DataFrame({
-            'Métrica': ['R²', 'R² Ajustado', 'AIC', 'BIC', 'Observações'],
-            'Valor': [
-                f"{config['r_squared']:.4f}",
-                f"{config['r_squared_adj']:.4f}",
-                f"{config['aic']:.2f}",
-                f"{config['bic']:.2f}",
-                str(config['n_observations'])
-            ]
-        })
-        st.dataframe(metrics_df, use_container_width=True, hide_index=True)
-
-        st.markdown(f"""
-        **Interpretação:**
-        - **R² = {config['r_squared']:.2%}**: O modelo explica {config['r_squared']:.1%} da variabilidade nos preços
-        - **R² Ajustado**: Penaliza a adição de variáveis desnecessárias
-        - **AIC/BIC**: Critérios de informação (menor = melhor)
-        """)
-
-    with col2:
-        st.subheader("Configuração do Modelo")
-
-        st.markdown(f"""
-        **Fórmula:**
-        ```
-        {config['formula']}
-        ```
-
-        **Variável Dependente:** {config['target']}
-
-        **Variáveis Independentes:**
-        """)
-
-        for pred in config['predictors']:
-            st.markdown(f"- `{pred}`")
 
     st.markdown("---")
     st.subheader("Como Usar")
@@ -342,8 +297,7 @@ with tab3:
 
     st.markdown("---")
     st.info("""
-    **Dica:** Para obter melhores predições, certifique-se de que os valores inseridos
-    estão dentro do intervalo dos dados de treinamento.
+    **Dica:** Certifique-se de que os valores inseridos estão dentro do intervalo dos dados de treinamento
     """)
 
 st.sidebar.markdown("---")
